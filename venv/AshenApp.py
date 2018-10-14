@@ -10,7 +10,7 @@ class App:
     artha = [0,0,0]
     aptitude_stats = ["Perception", "Will", "Agility", "Speed", "Power", "Forte"]
     train_skills = [[],[],[],[],[]] #Skill name, aptitude, tests toward, root (not shown), second root (not shown)
-    pretty_train_skills = "Skill\tAptitude\tTests"
+    pretty_train_skills = "Skill\tAptitude\tTests\n"
 
     def __init__(self, master):
         frame4 = Frame(master, bd=1, relief=GROOVE) #Displays Artha
@@ -195,6 +195,15 @@ class App:
         self.sb_train_aptitude = Spinbox(frame_train, values=self.aptitude_stats, wrap=True)
         self.sb_train_aptitude.pack(side=LEFT)
 
+        # Label for help/fork
+        self.label_train_base2 = Label(frame_train, text="Second Base Stat? (Leave blank if only one):")
+        self.label_train_base2.pack(side=LEFT)
+
+        # SB for choosing second base stat (if applicable)
+        self.aptitude_stats_w_blank = ["", "Perception", "Will", "Agility", "Speed", "Power", "Forte"]
+        self.sb_train_aptitude2 = Spinbox(frame_train, values=self.aptitude_stats_w_blank, wrap=True)
+        self.sb_train_aptitude2.pack(side=LEFT)
+
         # Button for new training skill
         self.button_add_skill = Button(frame_train, text="Begin Opening This Skill", command=self.get_new_skill_train)
         self.button_add_skill.pack(side=LEFT, padx=10, pady=10)
@@ -205,10 +214,6 @@ class App:
 
         # Button for adding a test towards aptitude
         self.button_add_skill = Button(frame_train, text="Add Test For Aptitude", command=self.increment_aptitude)
-        self.button_add_skill.pack(side=LEFT, padx=10, pady=10)
-
-        # Button for removing a test towards aptitude
-        self.button_add_skill = Button(frame_train, text="Remove a test For Aptitude", command=self.get_new_skill)
         self.button_add_skill.pack(side=LEFT, padx=10, pady=10)
 
         ##Frame border frame_train/frame_sl
@@ -508,13 +513,12 @@ class App:
     def get_new_skill_train(self):
         #self.new_skill_entry.insert(0, "TEST")
         aptitude = self.sb_train_aptitude.get()
-        print(aptitude)
-        self.add_skill_train(self.train_skill_entry_text.get(), aptitude, 1)
+        second_aptitude = self.sb_train_aptitude2.get()
+        self.add_skill_train(self.train_skill_entry_text.get(), aptitude, second_aptitude, 1)
         self.new_skill_entry.delete(0, END)
 
-    def add_skill_train(self, name, aptitude, currenttests):
-        second_root = "" #Need to add support for multiroot stats
-        if aptitude not in self.skills[0]:
+    def add_skill_train(self, name, aptitude, second_aptitude, currenttests):
+        if aptitude not in self.skills[0] or (not (second_aptitude == "") and (second_aptitude not in self.skills[0])):
             print("You need to enter that stat into your skills!")
             return
         try:
@@ -524,11 +528,12 @@ class App:
         except:
             1+1
         self.train_skills[3].append(aptitude)
-        self.train_skills[4].append(second_root)
-        if not(second_root == None):
+        self.train_skills[4].append(second_aptitude)
+        if (second_aptitude == ""): # Only one root
             aptitude = 10 - self.skills[2][self.skills[0].index(aptitude)]
-        else:
-            1+1# aptitude is 10 - avg of 2 roots
+        else: # Two roots
+            print("here")
+            aptitude = 10 - int((self.skills[2][self.skills[0].index(aptitude)] + self.skills[2][self.skills[0].index(second_aptitude)])/2) # aptitude is 10 - avg of 2 roots
         self.train_skills[0].append(name)
         self.train_skills[1].append(aptitude)
         self.train_skills[2].append(currenttests)
@@ -537,10 +542,10 @@ class App:
         self.label_train_list.configure(text=self.pretty_train_skills)
 
     def update_pretty_train_skills(self):
-        self.pretty_train_skills = "Skill\tAp-tude\tTests\tRoot 1\tRoot 2\n"
+        self.pretty_train_skills = "Skill\tAp-tude\tTests\n"
         print(self.train_skills)
         for i in  range(len(self.train_skills[0])):
-            for list in self.train_skills:
+            for list in self.train_skills[:3]:
                 self.pretty_train_skills += str(list[i])
                 self.pretty_train_skills += "\t"
             self.pretty_train_skills += "\n"
@@ -552,19 +557,39 @@ class App:
         if(self.train_skills[2][index] >= self.train_skills[1][index]): #if we have more tests than the aptitude
             root_1_idx = self.skills[0].index(self.train_skills[3][index]) #for the first root
             if (self.train_skills[4][index] == ""): #Is there is NOT a seond root
-                self.add_skill(self.train_skills[0][index], self.skills[1][root_1_idx], max(int(self.skills[2][root_1_idx]/2),1), 0,0,0,0,0,0)
+                self.add_skill(self.train_skills[0][index], self.skills[1][root_1_idx],
+                               max(int(self.skills[2][root_1_idx]/2),1), 0,0,0,0,0,0)
             else:
-                print()#To implement
+                root_2_idx = self.skills[0].index(self.train_skills[4][index])
+                different_shades = 0 #this value will be added to exponent before averaging, if the shades are different, this will be 2
+
+                #Shade determiing logic
+                shade = "";
+                if not(self.skills[1][root_1_idx] == self.skills[1][root_2_idx]): #The roots have two different shades
+                    different_shades = 2
+                    if(self.skills[1][root_1_idx] == 'B' or self.skills[1][root_2_idx] == 'B'): #The shade can only be B or G, and if it's not B it's G
+                        shade = 'B'
+                    else:
+                        shade = 'G'
+                else: #The roots have the same shade
+                    shade = self.skills[1][root_1_idx]
+
+                #Exponent determining logic
+                exponent = max( int( (self.skills[2][root_1_idx]+self.skills[2][root_2_idx]+different_shades) / 2),1)
+
+                self.add_skill(self.train_skills[0][index], shade,
+                               exponent, 0, 0, 0, 0, 0, 0)
             for item in self.train_skills:
                 del[item[index]]
         self.update_pretty_train_skills() 
         self.label_train_list.configure(text=self.pretty_train_skills)
+        self.sb_train_test.configure(values=self.train_skills[0])
 
     def save_file(self):
         filename = self.filename_entry_text.get()
         self.filename_entry.delete(0, END)
         with open(filename, 'wb') as handle:
-            pickle.dump((self.skills, self.artha), handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump((self.skills, self.artha, self.train_skills), handle, protocol=pickle.HIGHEST_PROTOCOL)
         display_str = "Your file " + filename + " has been saved!"
         showinfo("Saved!", display_str)
 
@@ -572,13 +597,16 @@ class App:
         filename = self.filename_entry_text.get()
         self.filename_entry.delete(0, END)
         with open(filename, 'rb') as handle:
-            self.skills, self.artha = pickle.load(handle)
+            self.skills, self.artha, self.train_skills = pickle.load(handle)
         self.sb_skill.configure(values=list(reversed(self.skills[0])))
+        self.update_pretty_train_skills()
         self.update_pretty_skills()
         self.label_skill_list.configure(text=self.pretty_skills)
         self.label_fate.configure(text="Fate: " + str(self.artha[0]) + " ")
         self.label_persona.configure(text=" Persona: " + str(self.artha[1]) + " ")
         self.label_deed.configure(text=" Deed: " + str(self.artha[2]) + " ")
+        self.label_train_list.configure(text=self.pretty_train_skills)
+        self.sb_train_test.configure(values=self.train_skills[0])
 root = Tk()
 myFont = font.Font(family = "@FixedSys", size=10) #@FixedSys, Lucida Console : We need to use a monospaced font so wide strings of 7 or fewer characters ('WWWWW') don't destroy the prettyskill formatting.
 app = App(root)
