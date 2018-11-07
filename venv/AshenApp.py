@@ -3,7 +3,9 @@ import tkinter
 from tkinter.messagebox import showinfo
 from tkinter import font
 import pickle
-
+#Use notes: SBL is broken alignment wise, pls fix.
+# It would be nice to have alternating colors or some thing in skills because that is hard to read.
+# SBL should absolutley display the root so you don't have to look it up every damn time you have to test.
 class App:
     skills = [[],[],[],[],[],[],[],[],[]] #Skill name, Shade (B, G, W), Exponent, Routine tests, difficult tests, challenging tests, fate, persona, deed
     pretty_skills = "Skill\t\tShade\tExpnt\tRoutine\tDiff\tChall\tFate\tPersona\tDeed\n"
@@ -13,18 +15,45 @@ class App:
     pretty_train_skills = "Skill\tAptitude\tTests\n"
 
     def __init__(self, master):
-        frame4 = Frame(master, bd=1, relief=GROOVE) #Displays Artha
+        #canvas inside master
+        self.canvas_wrapper = Canvas(master, background='#%02x%02x%02x' % (240, 240, 237))
+        scrollbar_y = Scrollbar(master)
+        scrollbar_x = Scrollbar(master, orient = "horizontal")
+
+        scrollbar_y.config(command=self.canvas_wrapper.yview)
+        scrollbar_x.config(command=self.canvas_wrapper.xview)
+        self.canvas_wrapper.config(yscrollcommand=scrollbar_y.set, xscrollcommand = scrollbar_x.set)
+        self.canvas_wrapper.configure(scrollregion=self.canvas_wrapper.bbox("all"))
+        #scrollbar inside master connected to canvas
+        scrollbar_y.pack(side=RIGHT, fill=Y)
+        scrollbar_x.pack(side=BOTTOM, fill=X)
+        self.canvas_wrapper.pack(expand = True, fill = BOTH)
+        #canvas contains frame st widgets can be packed inside frame (can't be packed inside of a canvas)
+        master_frame = Frame(self.canvas_wrapper)
+        self.canvas_wrapper.create_window((0, 0), window=master_frame, anchor='nw')
+
+        master_frame.bind("<Configure>", self.onFrameConfigure)
+
+        frame4 = Frame(master_frame, bd=1, relief=GROOVE)  # Displays Artha
         frame4.pack()
-        frame3 = Frame(master, bd=1, relief=GROOVE) #Displays current skills
+        frame3 = Frame(master_frame, bd=1, relief=GROOVE)  # Displays current skills
         frame3.pack()
-        frame2 = Frame(master, bd=1, relief =GROOVE) #For adding tests
+        frame2 = Frame(master_frame, bd=1, relief=GROOVE)  # For adding tests
         frame2.pack()
-        frame = Frame(master, bd=1, relief=GROOVE) #For adding new skills
+        frame = Frame(master_frame, bd=1, relief=GROOVE)  # For adding new skills
         frame.pack()
-        frame_train = Frame(master, bd=1, relief=GROOVE) #For adding skills currently being opened
+        frame_train = Frame(master_frame, bd=1, relief=GROOVE)  # For adding skills currently being opened
         frame_train.pack()
-        frame_sl = Frame(master, bd=1, relief=GROOVE) #For saving and loading skills
+        frame_sl = Frame(master_frame, bd=1, relief=GROOVE)  # For saving and loading skills
         frame_sl.pack()
+
+        #text_wrapper.create_window((0, 0), window=frame4, anchor = 'nw')
+        #text_wrapper.create_window((0, 100), window=frame3, anchor = 'nw')
+        #text_wrapper.create_window((0, 200), window=frame2, anchor = 'nw')
+        #text_wrapper.create_window((0, 300), window=frame, anchor = 'nw')
+        #text_wrapper.create_window((0, 400), window=frame_train, anchor = 'nw')
+        #text_wrapper.create_window((0, 500), window=frame_sl, anchor = 'nw')
+
 
         #Label for fate
         self.label_fate = Label(frame4, text ="Fate: "+ str(self.artha[0]) + " ")
@@ -184,7 +213,7 @@ class App:
 
         # Entrybox for new training skill
         self.train_skill_entry_text = tkinter.StringVar()
-        self.train_skill_entry = Entry(frame_train, width=10, textvariable=self.train_skill_entry_text)
+        self.train_skill_entry = Entry(frame_train, width=20, textvariable=self.train_skill_entry_text)
         self.train_skill_entry.pack(side=LEFT)
 
         # Label for help/fork
@@ -241,7 +270,7 @@ class App:
             for item in self.skills:
                 del[item[index]]
         except:
-            1+1 #What is the correct way to do this?
+            pass #Skill not already in list
         self.skills[0].append(skill)
         self.skills[1].append(shade)
         self.skills[2].append(exponent)
@@ -526,7 +555,7 @@ class App:
             for item in self.train_skills:
                 del[item[index]]
         except:
-            1+1
+            pass
         self.train_skills[3].append(aptitude)
         self.train_skills[4].append(second_aptitude)
         if (second_aptitude == ""): # Only one root
@@ -607,8 +636,13 @@ class App:
         self.label_deed.configure(text=" Deed: " + str(self.artha[2]) + " ")
         self.label_train_list.configure(text=self.pretty_train_skills)
         self.sb_train_test.configure(values=self.train_skills[0])
+
+    def onFrameConfigure(self, event):
+        self.canvas_wrapper.configure(scrollregion=self.canvas_wrapper.bbox("all"))
+
 root = Tk()
 myFont = font.Font(family = "@FixedSys", size=10) #@FixedSys, Lucida Console : We need to use a monospaced font so wide strings of 7 or fewer characters ('WWWWW') don't destroy the prettyskill formatting.
+
 app = App(root)
 
 root.mainloop()
